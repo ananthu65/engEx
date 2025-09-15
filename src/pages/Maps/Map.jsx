@@ -19,7 +19,7 @@ import {
 
 function MapComponent() {
   const mapRef = useRef(null);
-  
+
   // const building_clicked = useRef(null);
   // const is_navigation_enabled = useRef(true);
 
