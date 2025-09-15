@@ -1,7 +1,21 @@
 import L from "leaflet";
-const API = "http://localhost:3001";
+import io, { Socket } from "socket.io-client";
 
-let map;
+let map, socket;
+const API = 'http://localhost:3001';
+
+let userPosition;
+
+function setUserPosition(latLng) {
+  userPosition = latLng
+  console.log(`user position set to: ${userPosition[0]}, ${userPosition[1]}`)
+  gpsListners.forEach((listener) => listener(userPosition))
+}
+
+function getUserPosition() {
+  console.log(`user position served: ${userPosition[0]}, ${userPosition[1]}`)
+  return userPosition;
+}
 
 function buildingClick(id) {
   console.log("Building clicked:", id);
@@ -12,9 +26,16 @@ function buildingClick(id) {
   buildingClickListner.forEach(fn => fn(id));
 }
 
+window.buildingClick = buildingClick;
+
+function initWebSocket() {
+  socket = io(API);
+  socket.on('connection')
+}
+
 function initMap(map_div) {
-  const southWest = L.latLng(7.252000, 80.590528);
-  const northEast = L.latLng(7.255500, 80.593528);
+  const southWest = L.latLng(7.252000, 80.590249);
+  const northEast = L.latLng(7.255500, 80.593809);
   const bounds = L.latLngBounds(southWest, northEast);
 
   map = L.map(map_div, {
@@ -27,6 +48,12 @@ function initMap(map_div) {
   // Create custom panes
   map.createPane('routePane');
   map.getPane('routePane').style.zIndex = 650;
+
+  // Add OpenStreetMap tile layer
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 22
+  }).addTo(map);
 
 
   // Load SVG overlay
@@ -53,17 +80,7 @@ function initMap(map_div) {
 
   map.fitBounds(bounds);
 
-
-}
-
-async function getRouteToNode(userLatLng, dest) {
-  if(dest === undefined){
-    console.log("undefined route")
-  } else{
-    console.log(dest);
-  var result = await fetch(`${API}/routing?lat=${userLatLng[0]}&long=${userLatLng[1]}&dest=${dest}`);
-  return result.json();
-  }
+  initWebSocket();
 }
 
 const buildings = {
@@ -95,14 +112,8 @@ const buildings = {
 
 };
 
-async function getRouteToBuilding(userLatLng, buildingId) {
-  if (buildingId){
-  console.log(buildings[buildingId]);
-  var result = await getRouteToNode(userLatLng, buildings[buildingId]);
-  return result;
-  } else{
-    return null;
-  }
+function buildingToNode(id) {
+  return buildings[id];
 }
 
 
@@ -129,26 +140,59 @@ function drawMarker(latLng) {
 }
 
 
+
 let buildingClickListner = [];
 
 function addBuildingClickListner(listner) {
   buildingClickListner.push(listner);
 }
 
-async function getGpsPosition(){
-  return new Promise((resolve, reject) => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
-        console.log(`gps location: ${latitude}, ${longitude}`);
-        resolve([latitude, longitude]);
-      }, reject);
-    } else {
-      alert("Geolocation is not supported by this browser.");
-    }
-  })
+let gpsListners = [];
+function addGpsListner(listener) {
+  gpsListners.push(listener);
 }
 
-export {map, initMap, getRouteToNode, getRouteToBuilding, drawRoute, addBuildingClickListner, getGpsPosition, drawMarker };
+let watchId;
+function startGPS() {
+  if (navigator.geolocation) {
+    // Watch position continuously
+    watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        console.log(`Updated location: ${lat}, ${lng}`);
+        setUserPosition([lat, lng]); // update state -> rerender
+      },
+      (error) => {
+        console.error(error);
+        // fallback
+        setUserPosition([7.252310, 80.592530]);
+      },
+      {
+        enableHighAccuracy: true,  // better accuracy
+        maximumAge: 0,             // don’t use cached
+        timeout: 5000              // fail after 5s
+      }
+    );
+
+  }
+}
+
+function sendMessage(type, data) {
+  socket.emit(type, data);
+}
+
+function addMessageListner(type, listner) {
+  socket.on(type, listner);
+}
+
+function stopGps() {
+  navigator.geolocation.clearWatch(watchId);
+}
+
+export {map, initMap, setUserPosition, getUserPosition, buildingToNode, drawRoute, addBuildingClickListner, addGpsListner, startGPS, stopGps, drawMarker, addMessageListner, sendMessage };
+
+
+
+
 

@@ -1,15 +1,43 @@
 const express = require("express");
+const http = require('http');
+const {Server} = require('socket.io');
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const routeFromArbitraryPoint = require("./routing")
 const fs = require('fs/promises');
-const { searchDatabase } = require('./search');
+
 
 const app = express();
+
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {origin: "*"}
+});
+
 app.use(cors());
 app.use(bodyParser.json()); // parse JSON payloads
 
 const HTTP_PORT = 3001;
+
+io.on("connection", (socket) => {
+  console.log("Client connected:", socket.id);
+
+  // Listen for location updates
+  socket.on("position-update", (data) => {
+    
+    console.log(`Received from ${socket.id}: lat=${data.coords[0]}, lng=${data.coords[1]}, dest=${data.node}`);
+
+    // Do calculations
+    const route = routeFromArbitraryPoint(data.coords, data.node);
+
+    // Send back response
+    socket.emit("route-update", route);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Client disconnected:", socket.id);
+  });
+});
 
 // ---- Campus data (replace with real GeoJSON) ----
 const buildings = {
@@ -116,26 +144,6 @@ app.get("/routing", (req, res) => {
   }
 });
 
-// Search API endpoint
-app.get("/api/search", (req, res) => {
-  const { query, category, zone, subzone } = req.query;
-  
-  if (!query || query.trim() === '') {
-    return res.json({ results: [] });
-  }
-  
-  try {
-    const results = searchDatabase(query, { category, zone, subzone });
-    res.json({ 
-      results: results,
-      total: results.length 
-    });
-  } catch (error) {
-    console.error('Search error:', error);
-    res.status(500).json({ error: 'Search failed' });
-  }
-});
-
 app.get('/map', async (req, res) => {
   try {
     const svgContent = await fs.readFile('./map.svg', 'utf8');
@@ -148,6 +156,6 @@ app.get('/map', async (req, res) => {
   }
 });
 
-app.listen(HTTP_PORT, () => {
+server.listen(HTTP_PORT, () => {
   console.log(`Server running on http://localhost:${HTTP_PORT}`);
 });
