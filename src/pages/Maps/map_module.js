@@ -143,13 +143,36 @@ function drawMarker(latLng) {
 
 let buildingClickListner = [];
 
-function addBuildingClickListner(listner) {
-  buildingClickListner.push(listner);
+// Add a listener and return a function to remove it
+function addBuildingClickListner(listener) {
+  buildingClickListner.push(listener);
+
+  // Return an "unsubscribe" function
+  return () => {
+    removeBuildingClickListner(listener);
+  };
+}
+
+function removeBuildingClickListner(listener) {
+  const index = buildingClickListner.indexOf(listener);
+  if (index !== -1) {
+    buildingClickListner.splice(index, 1);
+  }
 }
 
 let gpsListners = [];
 function addGpsListner(listener) {
   gpsListners.push(listener);
+  return () => {
+    removeGpsListner(listener);
+  };
+}
+
+function removeGpsListner(listener) {
+  const index = buildingClickListner.indexOf(listener);
+  if (index !== -1) {
+    buildingClickListner.splice(index, 1);
+  }
 }
 
 let watchId;
@@ -190,7 +213,21 @@ function stopGps() {
   navigator.geolocation.clearWatch(watchId);
 }
 
-export {map, initMap, setUserPosition, getUserPosition, buildingToNode, drawRoute, addBuildingClickListner, addGpsListner, startGPS, stopGps, drawMarker, addMessageListner, sendMessage };
+export {
+  map, 
+  initMap, 
+  setUserPosition, 
+  getUserPosition, 
+  buildingToNode, 
+  drawRoute, 
+  addBuildingClickListner, 
+  addGpsListner, 
+  startGPS, 
+  stopGps, 
+  drawMarker, 
+  addMessageListner, 
+  sendMessage 
+};
 
 
 

@@ -2,12 +2,26 @@ import { useEffect, useRef } from "react";
 import "leaflet/dist/leaflet.css";
 import './Map.css';
 
-import {map, initMap, buildingToNode, drawRoute, addBuildingClickListner, getUserPosition, startGPS, addGpsListner, setUserPosition, addMessageListner, sendMessage } from "./map_module";  
+import {
+  map, 
+  initMap, 
+  buildingToNode, 
+  drawRoute, 
+  addBuildingClickListner, 
+  getUserPosition, 
+  startGPS, 
+  addGpsListner, 
+  setUserPosition, 
+  addMessageListner, 
+  sendMessage, 
+  stopGps 
+} from "./map_module";  
 
 function MapComponent() {
   const mapRef = useRef(null);
-  const building_clicked = useRef(null);
-  const is_navigation_enabled = useRef(true);
+  
+  // const building_clicked = useRef(null);
+  // const is_navigation_enabled = useRef(true);
 
   useEffect(() => {
     if (mapRef.current) return; // prevent re-init
@@ -16,30 +30,36 @@ function MapComponent() {
     initMap('map');
     mapRef.current = map
 
-    addGpsListner((latLng) => {
-      if (is_navigation_enabled) {
-        if (building_clicked.current) {
-          sendMessage('position-update', {coords:latLng, node: buildingToNode(building_clicked.current)})
-        }
-      }
+    // let unsubscribeGps = addGpsListner((latLng) => {
+    //   if (is_navigation_enabled) {
+    //     if (building_clicked.current) {
+    //       sendMessage('position-update', {coords:latLng, node: buildingToNode(building_clicked.current)})
+    //     }
+    //   }
       
-    })
+    // })
 
-    addMessageListner('route-update', (r) => drawRoute(r));
+    // addMessageListner('route-update', (r) => drawRoute(r));
 
-    startGPS();
+    // startGPS();
 
-    setInterval(() => {
-      const p = getUserPosition();
-      setUserPosition([p[0]+0.00001, p[1]+0.00001]);
-    }, 1000);
+    // setInterval(() => {
+    //   const p = getUserPosition();
+    //   setUserPosition([p[0]+0.00001, p[1]+0.00001]);
+    // }, 1000);
 
-    addBuildingClickListner((buildingId) => {
-      console.log("Building clicked:", buildingId);
-      //getRouteToBuilding(getUserPosition(), buildingId)
-      // .then(r => drawRoute(r));
-      building_clicked.current = buildingId;
-    });
+    // let unsubscrbeBuildingListner = addBuildingClickListner((buildingId) => {
+    //   console.log("Building clicked:", buildingId);
+    //   //getRouteToBuilding(getUserPosition(), buildingId)
+    //   // .then(r => drawRoute(r));
+    //   building_clicked.current = buildingId;
+    // });
+
+    // return () => {
+    //   stopGps();
+    //   unsubscrbeBuildingListner();
+    //   unsubscribeGps();
+    // }
 
   }, []);
   const mapStyle = { height: "740px", width: "640px" };
