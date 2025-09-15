@@ -1,4 +1,5 @@
 import L from "leaflet";
+const API = "http://localhost:3001";
 
 let map;
 
@@ -27,15 +28,9 @@ function initMap(map_div) {
   map.createPane('routePane');
   map.getPane('routePane').style.zIndex = 650;
 
-  // Add OpenStreetMap tile layer
-  // L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  //   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  //   maxZoom: 22
-  // }).addTo(map);
-
 
   // Load SVG overlay
-  fetch('http://localhost:3000/map')
+  fetch(`${API}/map`)
     .then(res => res.text())
     .then(svgText => {
       const parser = new DOMParser();
@@ -66,7 +61,7 @@ async function getRouteToNode(userLatLng, dest) {
     console.log("undefined route")
   } else{
     console.log(dest);
-  var result = await fetch(`http://localhost:3000/routing?lat=${userLatLng[0]}&long=${userLatLng[1]}&dest=${dest}`);
+  var result = await fetch(`${API}/routing?lat=${userLatLng[0]}&long=${userLatLng[1]}&dest=${dest}`);
   return result.json();
   }
 }

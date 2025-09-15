@@ -9,7 +9,7 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json()); // parse JSON payloads
 
-const HTTP_PORT = 3000;
+const HTTP_PORT = 3001;
 
 // ---- Campus data (replace with real GeoJSON) ----
 const buildings = {
