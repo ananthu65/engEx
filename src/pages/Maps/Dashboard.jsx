@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './Dashboard.css';
-import MapComponent from './Map.jsx';
+import MapExtra from './MapExtra.jsx';
 import { searchDatabase } from './search.js';
 
 const categories = {
@@ -797,7 +797,7 @@ const Dashboard = () => {
           <div className="map-main">
             <div className="map-card">
               <div className="map-viewport">
-                <MapComponent />
+                <MapExtra />
                 {/* Custom Controls */}
                 <div className="map-controls">
                   <button className={`map-ctrl ${isLocating ? 'loading' : ''}`} onClick={locateMe} aria-label="Locate me">
