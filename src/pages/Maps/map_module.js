@@ -123,9 +123,29 @@ function drawMarker(latLng) {
 }
 
 function setBuildingAccent(buildingId ,accent) {
-  const building = document.querySelectorAll(`#${buildingId}`);
-  building.classList.remove("unassigned", "assigned", "clicked");
-  building.classList.add(accent);
+  let cls = "";
+  switch(accent) {
+    case "unassigned":
+      cls = "st1";
+      break;
+    case "assigned":
+      cls = "st2";
+      break;
+    case "clicked":
+      cls = "st0";
+      break;
+    default:
+      console.warn(`Unknown accent type: ${accent}`);
+      return;
+  }
+  const building = document.querySelector(`#${buildingId}`);
+if (building) {
+  building.classList.remove("st1", "st2", "st0"); // remove previous accent classes
+  building.classList.add(cls);
+} else {
+  console.warn("Building not found:", buildingId);
+}
+
 }
 
 
@@ -135,6 +155,7 @@ let buildingClickListner = [];
 // Add a listener and return a function to remove it
 function addBuildingClickListner(listener) {
   buildingClickListner.push(listener);
+  console.log("Added building click listener. Total:", buildingClickListner.length);
 
   // Return an "unsubscribe" function
   return () => {
@@ -215,7 +236,8 @@ export {
   stopGps, 
   drawMarker, 
   addMessageListner, 
-  sendMessage 
+  sendMessage,
+  setBuildingAccent
 };
 
 
