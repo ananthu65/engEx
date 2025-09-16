@@ -10,16 +10,138 @@ export default function MapExtra() {
   const [isClosing, setIsClosing] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
 
+  // Engineering themed dummy building data (extend as needed)
+  const engineeringBuildings = {
+    b12: {
+      department: "Mechanical Engineering",
+      description: "Thermodynamics labs, CAD/CAM center, and machine shop.",
+      labs: ["Heat Transfer Lab", "Robotics Bay"],
+      floors: 4,
+      hours: "8:00–18:00",
+      contact: "mech-office@univ.edu"
+    },
+    b28: {
+      department: "Electrical & Electronic Engineering",
+      description: "Circuits, power systems and embedded systems facilities.",
+      labs: ["Power Electronics Lab", "Embedded Systems Studio"],
+      floors: 5,
+      hours: "8:00–19:00",
+      contact: "eee-office@univ.edu"
+    },
+    b34: {
+      department: "Computer Engineering",
+      description: "High‑performance computing cluster and AI research hub.",
+      labs: ["AI Lab", "Networks & Systems Lab"],
+      floors: 6,
+      hours: "8:00–20:00",
+      contact: "ce-office@univ.edu"
+    },
+    b07: {
+      department: "Civil Engineering",
+      description: "Structural testing rigs and materials characterization.",
+      labs: ["Materials Lab", "Geotechnical Lab"],
+      floors: 3,
+      hours: "8:30–17:30",
+      contact: "civil-office@univ.edu"
+    },
+    b19: {
+      department: "Chemical & Process Engineering",
+      description: "Unit operations pilot plant and process control center.",
+      labs: ["Process Control Lab", "Reaction Engineering Lab"],
+      floors: 5,
+      hours: "8:00–18:00",
+      contact: "chem-office@univ.edu"
+    }
+  };
+
+  const getBuildingInfo = (buildingId) => {
+    const key = String(buildingId).toLowerCase();
+    const info = engineeringBuildings[key] || {};
+    // Fallback generator when id not in map
+    const fallbackDepartments = [
+      "Software Engineering",
+      "Industrial Engineering",
+      "Biomedical Engineering",
+      "Mechatronics Engineering"
+    ];
+    const pick = fallbackDepartments[Math.abs(hashCode(key)) % fallbackDepartments.length];
+    return {
+      id: buildingId,
+      name: `Building ${buildingId}`,
+      department: info.department || pick,
+      description: info.description || "Specialized teaching spaces and research labs.",
+      labs: info.labs || ["Innovation Lab", "Prototyping Studio"],
+      floors: info.floors || 4,
+      hours: info.hours || "8:00–18:00",
+      contact: info.contact || `${pick.split(" ")[0].toLowerCase()}-office@univ.edu`
+    };
+  };
+
+  function hashCode(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) {
+      h = (h << 5) - h + str.charCodeAt(i);
+      h |= 0;
+    }
+    return h;
+  }
+
+  // Cookie helpers for bookmark persistence
+  const COOKIE_KEY = "iem_bookmarks";
+  const getCookie = (name) => {
+    if (typeof document === "undefined") return "";
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(";").shift();
+    return "";
+  };
+  const setCookie = (name, value, days = 365) => {
+    if (typeof document === "undefined") return;
+    const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
+    document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`;
+  };
+  const readBookmarks = () => {
+    try {
+      const raw = getCookie(COOKIE_KEY);
+      if (!raw) return [];
+      return JSON.parse(decodeURIComponent(raw));
+    } catch {
+      return [];
+    }
+  };
+  const writeBookmarks = (bookmarks) => {
+    try {
+      const serialized = encodeURIComponent(JSON.stringify(bookmarks));
+      setCookie(COOKIE_KEY, serialized);
+    } catch {
+      // ignore write errors
+    }
+  };
+  const isBookmarked = (id) => {
+    const list = readBookmarks();
+    return list.some((b) => String(b.id) === String(id));
+  };
+  const removeBookmarkLocal = (id) => {
+    const list = readBookmarks();
+    const next = list.filter((b) => String(b.id) !== String(id));
+    writeBookmarks(next);
+  };
+
   useEffect(() => {
     // Listen for building clicks from the map module
     const unsubscribe = addBuildingClickListner((buildingId) => {
-      setSelectedBuilding({ id: buildingId, name: `Building ${buildingId}` });
+      setSelectedBuilding(getBuildingInfo(buildingId));
       setIsSheetOpen(true);
     });
     return () => {
       if (typeof unsubscribe === "function") unsubscribe();
     };
   }, []);
+
+  // When selected building changes, reflect bookmark status from cookie
+  useEffect(() => {
+    // no automatic bookmark status on selection
+  }, [selectedBuilding]);
 
   useEffect(() => {
     const updateMapViewportSize = () => {
@@ -178,38 +300,96 @@ export default function MapExtra() {
               <span style={{ marginLeft: 6 }}>{selectedBuilding?.id}</span>
             </div>
             <div style={{ marginBottom: 8 }}>
-              This is a frontend-only bottom sheet shown after clicking a building on the map.
+              <div style={{ color: "#111827", fontWeight: 600, marginBottom: 6 }}>Department</div>
+              <div style={{ color: "#374151" }}>{selectedBuilding?.department}</div>
+            </div>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ color: "#111827", fontWeight: 600, marginBottom: 6 }}>Description</div>
+              <div style={{ color: "#374151" }}>{selectedBuilding?.description}</div>
+            </div>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ color: "#111827", fontWeight: 600, marginBottom: 6 }}>Labs</div>
+              <div style={{ color: "#374151" }}>
+                {(selectedBuilding?.labs || []).join(", ")}
+              </div>
+            </div>
+            <div style={{ marginBottom: 8, display: "flex", gap: 12, color: "#374151" }}>
+              <div><strong style={{ color: "#2563eb" }}>Floors:</strong> {selectedBuilding?.floors}</div>
+              <div><strong style={{ color: "#2563eb" }}>Hours:</strong> {selectedBuilding?.hours}</div>
+            </div>
+            <div style={{ marginBottom: 8 }}>
+              <strong style={{ color: "#2563eb" }}>Contact:</strong>
+              <span style={{ marginLeft: 6 }}>{selectedBuilding?.contact}</span>
             </div>
             {navStatus && (
               <div style={{ marginTop: 6, color: "#059669", fontSize: 13 }}>{navStatus}</div>
             )}
-            {bookmarkStatus && (
-              <div style={{ marginTop: 6, color: "#f59e0b", fontSize: 13 }}>{bookmarkStatus}</div>
-            )}
+            {/* Bookmark status message removed per request */}
             <div className="iem-actions">
-              <button
-                type="button"
-                className="iem-btn iem-btn-gradient"
-                onClick={() => {
-                  if (!selectedBuilding) return;
-                  const payload = { id: selectedBuilding.id, name: selectedBuilding.name };
-                  if (typeof window !== "undefined" && typeof window.addBookmark === "function") {
-                    window.addBookmark(payload);
-                    setBookmarkStatus("Added to bookmarks");
-                  } else {
-                    setBookmarkStatus("Bookmark saved (local only)");
-                  }
-                  setTimeout(() => setBookmarkStatus(""), 2000);
-                }}
-                aria-label="Bookmark"
-              >
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                    <path d="M6 3.5A2.5 2.5 0 0 1 8.5 1h7A2.5 2.5 0 0 1 18 3.5V21l-6-3.5L6 21V3.5Z" stroke="#ffffff" strokeWidth="2" fill="none"/>
-                  </svg>
-                  <span>Bookmark</span>
-                </span>
-              </button>
+              {selectedBuilding && isBookmarked(selectedBuilding.id) ? (
+                <button
+                  type="button"
+                  className="iem-btn iem-btn-gradient"
+                  onClick={() => {
+                    if (!selectedBuilding) return;
+                    const id = selectedBuilding.id;
+                    // Remove from cookie
+                    removeBookmarkLocal(id);
+                    // Notify dashboard if available
+                    if (typeof window !== "undefined" && typeof window.removeBookmark === "function") {
+                      try { window.removeBookmark(id); } catch {}
+                    }
+                    setBookmarkStatus("Removed from bookmarks");
+                    setTimeout(() => setBookmarkStatus(""), 2000);
+                    setIsClosing(true);
+                    setTimeout(() => {
+                      setIsSheetOpen(false);
+                      setIsClosing(false);
+                    }, 300);
+                  }}
+                  aria-label="Unbookmark"
+                >
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <path d="M6 3.5A2.5 2.5 0 0 1 8.5 1h7A2.5 2.5 0 0 1 18 3.5V21l-6-3.5L6 21V3.5Z" stroke="#ffffff" strokeWidth="2" fill="none"/>
+                      <path d="M6 6 L18 18" stroke="#ffffff" strokeWidth="2"/>
+                    </svg>
+                    <span>Unbookmark</span>
+                  </span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="iem-btn iem-btn-gradient"
+                  onClick={() => {
+                    if (!selectedBuilding) return;
+                    const payload = { id: selectedBuilding.id, name: selectedBuilding.name };
+                    const current = readBookmarks();
+                    const exists = current.some((b) => String(b.id) === String(payload.id));
+                    if (!exists) {
+                      current.push(payload);
+                      writeBookmarks(current);
+                    }
+                    if (typeof window !== "undefined" && typeof window.addBookmark === "function") {
+                      try { window.addBookmark(payload); } catch {}
+                    }
+                    // no status message
+                    setIsClosing(true);
+                    setTimeout(() => {
+                      setIsSheetOpen(false);
+                      setIsClosing(false);
+                    }, 300);
+                  }}
+                  aria-label="Bookmark"
+                >
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <path d="M6 3.5A2.5 2.5 0 0 1 8.5 1h7A2.5 2.5 0 0 1 18 3.5V21l-6-3.5L6 21V3.5Z" stroke="#ffffff" strokeWidth="2" fill="none"/>
+                    </svg>
+                    <span>Bookmark</span>
+                  </span>
+                </button>
+              )}
               <button
                 type="button"
                 className="iem-btn iem-btn-gradient"
