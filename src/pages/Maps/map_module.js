@@ -49,13 +49,6 @@ function initMap(map_div) {
   map.createPane('routePane');
   map.getPane('routePane').style.zIndex = 650;
 
-  // Add OpenStreetMap tile layer
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 22
-  }).addTo(map);
-
-
   // Load SVG overlay
   fetch(`${API}/map`)
     .then(res => res.text())
@@ -63,18 +56,8 @@ function initMap(map_div) {
       const parser = new DOMParser();
       const svgDoc = parser.parseFromString(svgText, "image/svg+xml");
       const svgElement = svgDoc.documentElement;
-      L.svgOverlay(svgElement, bounds).addTo(map);
-
-      //Attach click listeners to SVG buildings
-      const buildings = document.querySelectorAll('#_x3C_buildings_x3E_ .st4');
-      buildings.forEach(building => {
-          building.addEventListener('click', (event) => {
-              buildingClick(event.target.id);
-          });
-      });
-    })
-    .then(() => {
-      //connectSSE();
+      L.svgOverlay(svgElement, bounds).addTo(map);      
+    
     })
     .catch(err => console.error('Error loading SVG:', err));
 
@@ -137,6 +120,12 @@ function drawMarker(latLng) {
   if(latLng){
     L.circleMarker(latLng, { radius: 8, color: 'blue', pane: 'routePane' }).addTo(map);
   }
+}
+
+function setBuildingAccent(buildingId ,accent) {
+  const building = document.querySelectorAll(`#${buildingId}`);
+  building.classList.remove("unassigned", "assigned", "clicked");
+  building.classList.add(accent);
 }
 
 
