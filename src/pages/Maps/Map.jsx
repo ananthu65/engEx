@@ -74,7 +74,7 @@ function MapComponent() {
     // }
 
   }, []);
-  const mapStyle = { height: "740px", width: "640px" };
+  const mapStyle = { height: "100%", width: "100%" };
 
   return <div id="map" style={mapStyle}></div>;
  

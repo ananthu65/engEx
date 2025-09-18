@@ -60,6 +60,14 @@ function initMap(map_div) {
       const parser = new DOMParser();
       const svgDoc = parser.parseFromString(svgText, "image/svg+xml");
       const svgElement = svgDoc.documentElement;
+      
+      // Set SVG to scale to 100% width and height
+      svgElement.setAttribute('width', '100%');
+      svgElement.setAttribute('height', '100%');
+      svgElement.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+      svgElement.style.width = '100%';
+      svgElement.style.height = '100%';
+      
       L.svgOverlay(svgElement, bounds).addTo(map);      
     
     })

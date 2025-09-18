@@ -1,7 +1,7 @@
 /* Map Container Styles */
 #map {
-  height: 740px;
-  width: 840px;
+  height: 100%;
+  width: 100%;
   min-height: 400px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -15,14 +15,13 @@
 @media (max-width: 1024px) {
   #map {
     width: 100%;
-    max-width: 840px;
-    height: 600px;
+    height: 100%;
   }
 }
 
 @media (max-width: 768px) {
   #map {
-    height: 500px;
+    height: 100%;
     width: 100%;
   }
 }
@@ -54,6 +53,8 @@
   pointer-events: auto !important;
   z-index: 600 !important;
   opacity: 0.9 !important;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .leaflet-svg-overlay svg {
@@ -61,6 +62,11 @@
   z-index: 600 !important;
   opacity: 0.9 !important;
   mix-blend-mode: multiply;
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
 }
 
 /* Building clickable areas */
@@ -192,6 +198,8 @@
 @media (max-width: 768px) {
   #map {
     min-height: 300px;
+    height: 100%;
+    width: 100%;
   }
   
   .leaflet-popup-content {

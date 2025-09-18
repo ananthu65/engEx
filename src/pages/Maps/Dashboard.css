@@ -435,7 +435,7 @@
   .map-viewport {
     width: 100%;
     min-width: 0;
-    height: 45vh;
+    height: 70vh;
     border-radius: 10px;
     box-sizing: border-box;
     display: block;
@@ -511,7 +511,7 @@
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
-    height: 38vh !important;
+    height: 65vh !important;
     box-sizing: border-box;
     margin: 0 auto;
   }
@@ -631,7 +631,7 @@
   }
   
   .map-viewport {
-    height: 60vh;
+    height: 70vh;
   }
 }
 
@@ -669,7 +669,7 @@
   }
   
   .map-viewport {
-    height: 55vh;
+    height: 70vh;
   }
   
   .map-controls {
@@ -1291,7 +1291,7 @@
   .map-viewport {
     width: 100%;
     min-width: 0;
-    height: 45vh;
+    height: 70vh;
     border-radius: 10px;
     box-sizing: border-box;
     display: block;
@@ -1353,3 +1353,4 @@
     align-self: center;
   }
 }
+

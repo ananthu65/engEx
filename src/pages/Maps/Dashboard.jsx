@@ -84,12 +84,6 @@ const LocateIcon = () => (
 );
 
 // Search icon component (clickable)
-// Custom SVG Bell Icon for Notification
-const BellIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ verticalAlign: 'middle' }}>
-    <path d="M11 20c1.104 0 2-.896 2-2h-4c0 1.104.896 2 2 2zm6-6v-5c0-3.07-2.13-5.64-5-6.32V2a1 1 0 1 0-2 0v.68C5.13 3.36 3 5.92 3 9v5l-1 1v1h16v-1l-1-1z" stroke="#2563eb" strokeWidth="1.5" fill="#fff"/>
-  </svg>
-);
 const SearchIconBtn = ({ onClick }) => (
   <button
     className="map-search-icon-btn"
@@ -274,36 +268,6 @@ function ZoneFilterPopup({
   );
 }
 
-function NotificationPanel({ show, notification, onClose }) {
-  if (!show) return null;
-  return (
-    <div className="dashboard-notification-panel" style={{ position: 'absolute', top: '110%', right: 0, minWidth: 260, background: '#fff', borderRadius: 16, boxShadow: '0 8px 32px rgba(37,99,235,0.12)', padding: '18px 18px 12px 18px', zIndex: 9999 }}>
-      <div style={{ fontWeight: 600, color: '#2563eb', marginBottom: 8 }}>Notifications</div>
-      {notification ? (
-        <div className="dashboard-bookmark-notification">
-          <span role="img" aria-label="notification" style={{ marginRight: 6 }}>🔔</span>
-          <span>
-            {(() => {
-              const now = Date.now();
-              const start = typeof notification.startTime === 'number' ? notification.startTime : new Date(notification.startTime).getTime();
-              if (now < start) {
-                return <>Upcoming: <strong>{notification.name}</strong> at {new Date(start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</>;
-              } else {
-                return <>Event <strong>{notification.name}</strong> is starting now!</>;
-              }
-            })()}
-          </span>
-        </div>
-      ) : (
-        <div style={{ color: '#6b7280', fontSize: '0.95rem' }}>No notifications.</div>
-      )}
-      <button
-        style={{ marginTop: 12, background: '#2563eb', color: '#fff', borderRadius: '8px', border: 'none', padding: '8px 18px', fontWeight: 600, cursor: 'pointer' }}
-        onClick={onClose}
-      >Close</button>
-    </div>
-  );
-}
 
 function MapLegend({ categories, activeCategories, handleLegendFilter }) {
   return (
@@ -338,50 +302,6 @@ function MapLegend({ categories, activeCategories, handleLegendFilter }) {
   );
 }
 
-function BookmarkSidebar({ bookmarkedPoints, categories, setSelectedPoint, onRemove }) {
-  return (
-    <div className="dashboard-bookmarks-list">
-      {bookmarkedPoints.length === 0 ? (
-        <div className="dashboard-bookmarks-empty">No bookmarks yet.</div>
-      ) : (
-        bookmarkedPoints.map(bookmark => (
-          <button
-            key={bookmark.id}
-            className="dashboard-bookmark-item"
-            onClick={() => {
-              // Show building details when bookmark is clicked
-              if (window.showBuildingInfo) {
-                window.showBuildingInfo(bookmark.id, bookmark.name);
-              }
-            }}
-          >
-            <span className="dashboard-bookmark-dot" style={{ backgroundColor: '#f59e0b' }} />
-            <span className="dashboard-bookmark-name">{bookmark.name}</span>
-            <span className="dashboard-bookmark-icon">
-              <button
-                type="button"
-                aria-label="Remove bookmark"
-                onClick={(e) => { e.stopPropagation(); onRemove?.(bookmark.id); }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: 0,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-                title="Remove"
-              >
-                <BookmarkIcon filled />
-              </button>
-            </span>
-          </button>
-        ))
-      )}
-    </div>
-  );
-}
 
 const Dashboard = () => {
   const mapRef = useRef(null);
@@ -389,8 +309,6 @@ const Dashboard = () => {
   const [activeCategories, setActiveCategories] = useState({ Exhibits: true, Amenities: true, Emergency: true });
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
-  const [bookmarks, setBookmarks] = useState([]);
-  const [sidebarTab, setSidebarTab] = useState('main'); // 'main' or 'bookmarks'
   const [showZoneFilter, setShowZoneFilter] = useState(false);
   const [selectedZone, setSelectedZone] = useState('all');
   const [selectedSubzone, setSelectedSubzone] = useState('all');
@@ -401,51 +319,6 @@ const Dashboard = () => {
   const [buildingRelatedResults, setBuildingRelatedResults] = useState([]);
   const [showBuildingResults, setShowBuildingResults] = useState(false);
 
-  // --- Bookmark persistence via cookie (shared with MapExtra) ---
-  const COOKIE_KEY = 'iem_bookmarks';
-  const getCookie = (name) => {
-    if (typeof document === 'undefined') return '';
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-    return '';
-  };
-  const setCookie = (name, value, days = 365) => {
-    if (typeof document === 'undefined') return;
-    const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
-    document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`;
-  };
-  const readBookmarksFromCookie = () => {
-    try {
-      const raw = getCookie(COOKIE_KEY);
-      if (!raw) return [];
-      return JSON.parse(decodeURIComponent(raw));
-    } catch {
-      return [];
-    }
-  };
-  const writeBookmarksToCookie = (list) => {
-    try {
-      const serialized = encodeURIComponent(JSON.stringify(list));
-      setCookie(COOKIE_KEY, serialized);
-    } catch {
-      // ignore
-    }
-  };
-
-  // Initialize bookmarks from cookie on first load
-  useEffect(() => {
-    const initial = readBookmarksFromCookie();
-    if (Array.isArray(initial) && initial.length > 0) {
-      setBookmarks(initial);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Keep cookie in sync when bookmarks change
-  useEffect(() => {
-    writeBookmarksToCookie(bookmarks);
-  }, [bookmarks]);
 
   const visiblePoints = useMemo(() => {
     // Use search results when available
@@ -619,69 +492,6 @@ const Dashboard = () => {
 
 
 
-  // Bookmark logic
-  const isBookmarked = selectedPoint && bookmarks.includes(selectedPoint.id);
-  const toggleBookmark = () => {
-    if (!selectedPoint) return;
-    setBookmarks(prev =>
-      prev.includes(selectedPoint.id)
-        ? prev.filter(id => id !== selectedPoint.id)
-        : [...prev, selectedPoint.id]
-    );
-  };
-
-  // Add bookmark function for Map component
-  const addBookmark = (bookmark) => {
-    console.log('addBookmark called with:', bookmark);
-    if (!bookmark || !bookmark.id) {
-      console.log('Invalid bookmark data');
-      return;
-    }
-    
-    setBookmarks(prev => {
-      console.log('Current bookmarks:', prev);
-      // Check if already bookmarked
-      if (prev.some(b => b.id === bookmark.id)) {
-        console.log('Already bookmarked');
-        return prev; // Already bookmarked
-      }
-      // Add new bookmark
-      const newBookmarks = [...prev, bookmark];
-      console.log('New bookmarks:', newBookmarks);
-      return newBookmarks;
-    });
-  };
-
-  // Remove bookmark by id (updates UI and cookie via sync effect)
-  const removeBookmark = (id) => {
-    setBookmarks(prev => prev.filter(b => String(b.id) !== String(id)));
-  };
-
-  // Memo for bookmarked points
-  const bookmarkedPoints = useMemo(
-    () => {
-      console.log('bookmarkedPoints useMemo - bookmarks:', bookmarks);
-      // If bookmarks are objects (new format), use them directly
-      if (bookmarks.length > 0 && typeof bookmarks[0] === 'object') {
-        console.log('Using new format bookmarks:', bookmarks);
-        return bookmarks;
-      }
-      // If bookmarks are IDs (old format), return empty array since we don't have mockPoints
-      console.log('Old format bookmarks detected, but no mockPoints available');
-      return [];
-    },
-    [bookmarks]
-  );
-
-  // Expose addBookmark function globally for Map component
-  useEffect(() => {
-    window.addBookmark = addBookmark;
-    window.removeBookmark = removeBookmark;
-    return () => {
-      delete window.addBookmark;
-      delete window.removeBookmark;
-    };
-  }, []);
 
 
   // Center map on a specific point (used in search results)
@@ -697,57 +507,7 @@ const Dashboard = () => {
     // UI only for now
   };
 
-  // Notification state
-  const [notification, setNotification] = useState(null);
-  const [showNotificationPopup, setShowNotificationPopup] = useState(false);
-  const [showNotificationPanel, setShowNotificationPanel] = useState(false);
 
-  // Helper: get next notification event (10 min before or at start)
-  const getNextNotification = () => {
-    const now = Date.now();
-    // Only for bookmarked points with startTime
-    if (bookmarkedPoints.length === 0) return null; // Only enable notification if there are bookmarks
-    const events = bookmarkedPoints
-      .filter(p => p.startTime)
-      .map(p => {
-        const start = typeof p.startTime === 'number' ? p.startTime : new Date(p.startTime).getTime();
-        return { ...p, start };
-      });
-    for (const ev of events) {
-      const minBefore = ev.start - 10 * 60 * 1000;
-      if (
-        (now >= minBefore && now < ev.start) || // 10 min before
-        (now >= ev.start && now < ev.start + 60 * 1000) // at start, show for 1 min
-      ) {
-        return ev;
-      }
-    }
-    return null;
-  };
-
-  // Notification effect: show popup only once per event
-  useEffect(() => {
-    let notifiedEventId = null;
-    const checkNotification = () => {
-      // Only enable notification if there are bookmarks
-      if (bookmarkedPoints.length === 0) {
-        setShowNotificationPopup(false);
-        setNotification(null);
-        return;
-      }
-      const next = getNextNotification();
-      if (next && notifiedEventId !== next.id) {
-        setNotification(next);
-        setShowNotificationPopup(true);
-        notifiedEventId = next.id;
-        setTimeout(() => setShowNotificationPopup(false), 60000); // auto-hide after 1 min
-      }
-    };
-    const interval = setInterval(checkNotification, 10000); // check every 10s
-    checkNotification();
-    return () => clearInterval(interval);
-    // eslint-disable-next-line
-  }, [bookmarkedPoints]);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const handleFullscreen = () => {
@@ -832,22 +592,6 @@ const Dashboard = () => {
                 allSubzones={allSubzones}
               />
             </div>
-            <div className="dashboard-notification-btn-wrap" style={{ position: 'relative', marginLeft: 8 }}>
-              <button
-                className="dashboard-zone-filter-btn"
-                type="button"
-                aria-label="Notifications"
-                style={{ width: 44, height: 44, padding: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}
-                onClick={() => setShowNotificationPanel(v => !v)}
-              >
-                <BellIcon />
-              </button>
-              <NotificationPanel
-                show={showNotificationPanel}
-                notification={notification}
-                onClose={() => setShowNotificationPanel(false)}
-              />
-            </div>
           </div>
         </div>
         <div className="map-layout">
@@ -897,68 +641,8 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
-          {/* Bookmark Sidebar as a block */}
-          <div className="map-bookmark-sidebar-block" style={{
-            flex: '0 0 280px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1rem',
-            background: '#fff',
-            borderRadius: '20px',
-            boxShadow: '8px 8px 16px rgba(163, 177, 198, 0.15), -8px -8px 16px rgba(255,255,255,0.8)',
-            padding: '20px',
-            marginLeft: '1rem',
-            minHeight: '400px'
-          }}>
-            <div className="dashboard-sidebar-tabs">
-              <div className="dashboard-sidebar-heading">
-                Bookmarks
-                {bookmarks.length > 0 && (
-                  <span className="dashboard-bookmark-count">{bookmarks.length}</span>
-                )}
-              </div>
-            </div>
-            <BookmarkSidebar
-              bookmarkedPoints={bookmarkedPoints}
-              categories={categories}
-              setSelectedPoint={setSelectedPoint}
-              onRemove={removeBookmark}
-            />
-          </div>
         </div>
       </div>
-      {/* Notification popup: only show once, 10 min before or at start time */}
-      {showNotificationPopup && notification && (
-        <div className="dashboard-notification-popup">
-          <span role="img" aria-label="notification" style={{ fontSize: 22 }}>🔔</span>
-          <div>
-            <div style={{ fontWeight: 600, color: '#2563eb' }}>{notification.name}</div>
-            <div style={{ fontSize: 14, color: '#374151' }}>
-              {(() => {
-                const now = Date.now();
-                const start = typeof notification.startTime === 'number' ? notification.startTime : new Date(notification.startTime).getTime();
-                if (now < start) {
-                  return `Starts at ${new Date(start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-                } else {
-                  return `Event is starting now!`;
-                }
-              })()}
-            </div>
-          </div>
-          <button
-            style={{
-              marginLeft: 'auto',
-              background: 'none',
-              border: 'none',
-              fontSize: 22,
-              cursor: 'pointer',
-              color: '#2563eb'
-            }}
-            aria-label="Close notification"
-            onClick={() => setShowNotificationPopup(false)}
-          >×</button>
-        </div>
-      )}
     </div>
   );
 };
